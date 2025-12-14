@@ -90,4 +90,32 @@ pipeline {
             echo "Backup pipeline failed for ${BACKUP_CLIENT}"
         }
     }
+    post {
+    success {
+        emailext(
+            subject: "SUCCESS: Backup Pipeline for ${BACKUP_CLIENT}",
+            body: """
+            <h3>Backup completed successfully</h3>
+            <p><b>Client:</b> ${BACKUP_CLIENT}</p>
+            <p><b>Job:</b> ${env.JOB_NAME}</p>
+            <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
+            <p><b>URL:</b> <a href='${env.BUILD_URL}'>Build Link</a></p>
+            """,
+            to: "yourmail@example.com"
+        )
+    }
+
+    failure {
+        emailext(
+            subject: "FAILED: Backup Pipeline for ${BACKUP_CLIENT}",
+            body: """
+            <h3>Backup failed ❌</h3>
+            <p><b>Client:</b> ${BACKUP_CLIENT}</p>
+            <p><b>Check logs:</b> <a href='${env.BUILD_URL}'>Build Link</a></p>
+            """,
+            to: "yourmail@example.com"
+        )
+    }
+}
+
 }
