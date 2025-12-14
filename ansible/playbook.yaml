@@ -1,0 +1,30 @@
+---
+- name: Backup automation practice playbook
+  hosts: backup_client
+  become: yes
+
+  tasks:
+    - name: Check connectivity
+      ping:
+
+    - name: Print backup client hostname
+      debug:
+        msg: "Running backup automation on {{ inventory_hostname }}"
+
+    - name: Create backup directory
+      file:
+        path: /tmp/backup_demo
+        state: directory
+        mode: '0755'
+
+    - name: Create sample backup file
+      copy:
+        content: "Backup executed on {{ inventory_hostname }}"
+        dest: /tmp/backup_demo/backup.txt
+
+    - name: Show backup file content
+      command: cat /tmp/backup_demo/backup.txt
+      register: backup_output
+
+    - debug:
+        var: backup_output.stdout
