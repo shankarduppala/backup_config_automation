@@ -4,13 +4,14 @@ pipeline {
     parameters {
         string(
             name: 'BACKUP_CLIENT',
-            description: 'AWS Ubuntu EC2 public IP or hostname for backup'
+            description: 'AWS Ubuntu EC2 public IP or hostname'
         )
     }
 
     environment {
+        ANSIBLE_HOST_KEY_CHECKING = 'False'
         INVENTORY_FILE = 'inventory.ini'
-        ANSIBLE_PLAYBOOK = 'playbook.yml'
+        ANSIBLE_PLAYBOOK = 'playbook.yaml'
     }
 
     stages {
@@ -25,12 +26,20 @@ pipeline {
             }
         }
 
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Create Ansible Inventory') {
             steps {
-                sh """
-                echo "[backup_client]" > ${INVENTORY_FILE}
-                echo "${BACKUP_CLIENT}" >> ${INVENTORY_FILE}
-                """
+                sh '''
+                cd ansible
+                echo "[backup_client]" > inventory.ini
+                echo "${BACKUP_CLIENT}" >> inventory.ini
+                cat inventory.ini
+                '''
             }
         }
 
@@ -42,12 +51,12 @@ pipeline {
                         keyFileVariable: 'SSH_KEY'
                     )
                 ]) {
-                    sh """
+                    sh '''
                     ssh -o StrictHostKeyChecking=no \
-                        -i $SSH_KEY \
+                        -i ${SSH_KEY} \
                         ubuntu@${BACKUP_CLIENT} \
                         "echo SSH connection successful"
-                    """
+                    '''
                 }
             }
         }
@@ -60,13 +69,14 @@ pipeline {
                         keyFileVariable: 'SSH_KEY'
                     )
                 ]) {
-                    sh """
+                    sh '''
+                    cd ansible
                     ansible-playbook \
-                      -i ${INVENTORY_FILE} \
-                      --private-key $SSH_KEY \
+                      -i inventory.ini \
+                      --private-key ${SSH_KEY} \
                       -u ubuntu \
-                      ${ANSIBLE_PLAYBOOK}
-                    """
+                      playbook.yaml
+                    '''
                 }
             }
         }
