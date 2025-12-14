@@ -83,14 +83,6 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Backup pipeline executed successfully for ${BACKUP_CLIENT}"
-        }
-        failure {
-            echo "Backup pipeline failed for ${BACKUP_CLIENT}"
-        }
-    }
-    post {
     success {
         emailext(
             subject: "SUCCESS: Backup Pipeline for ${BACKUP_CLIENT}",
@@ -101,7 +93,7 @@ pipeline {
             <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
             <p><b>URL:</b> <a href='${env.BUILD_URL}'>Build Link</a></p>
             """,
-            to: "yourmail@example.com"
+            to: "shankarduppala320@gmail.com"
         )
     }
 
@@ -113,9 +105,10 @@ pipeline {
             <p><b>Client:</b> ${BACKUP_CLIENT}</p>
             <p><b>Check logs:</b> <a href='${env.BUILD_URL}'>Build Link</a></p>
             """,
-            to: "yourmail@example.com"
+            to: "yshankarduppala320@gmail.com"
         )
     }
 }
 
+    
 }
