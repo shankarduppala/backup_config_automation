@@ -1,0 +1,2 @@
+# backup_config_automation
+self_project
