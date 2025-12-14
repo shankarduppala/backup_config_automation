@@ -4,35 +4,28 @@ pipeline {
     parameters {
         string(
             name: 'BACKUP_CLIENT',
-            defaultValue: '',
-            description: 'Backup client hostname'
+            description: 'AWS Ubuntu EC2 public IP or hostname for backup'
         )
     }
 
     environment {
-        ANSIBLE_PLAYBOOK = "ansible/playbook.yml"
-        INVENTORY_FILE   = "ansible/inventory.ini"
+        INVENTORY_FILE = 'inventory.ini'
+        ANSIBLE_PLAYBOOK = 'playbook.yml'
     }
 
     stages {
 
-        stage('Checkout Code') {
-            steps {
-                checkout scm
-            }
-        }
-
-        stage('Validate Parameter') {
+        stage('Validate Input') {
             steps {
                 script {
                     if (!params.BACKUP_CLIENT?.trim()) {
-                        error "BACKUP_CLIENT parameter is required!"
+                        error "BACKUP_CLIENT parameter cannot be empty"
                     }
                 }
             }
         }
 
-        stage('Create Inventory') {
+        stage('Create Ansible Inventory') {
             steps {
                 sh """
                 echo "[backup_client]" > ${INVENTORY_FILE}
@@ -41,21 +34,50 @@ pipeline {
             }
         }
 
+        stage('Test SSH Connectivity') {
+            steps {
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'aws-ubuntu-key',
+                        keyFileVariable: 'SSH_KEY'
+                    )
+                ]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no \
+                        -i $SSH_KEY \
+                        ubuntu@${BACKUP_CLIENT} \
+                        "echo SSH connection successful"
+                    """
+                }
+            }
+        }
+
         stage('Run Ansible Playbook') {
             steps {
-                sh """
-                ansible-playbook -i ${INVENTORY_FILE} ${ANSIBLE_PLAYBOOK}
-                """
+                withCredentials([
+                    sshUserPrivateKey(
+                        credentialsId: 'aws-ubuntu-key',
+                        keyFileVariable: 'SSH_KEY'
+                    )
+                ]) {
+                    sh """
+                    ansible-playbook \
+                      -i ${INVENTORY_FILE} \
+                      --private-key $SSH_KEY \
+                      -u ubuntu \
+                      ${ANSIBLE_PLAYBOOK}
+                    """
+                }
             }
         }
     }
 
     post {
         success {
-            echo "Backup automation completed successfully for ${BACKUP_CLIENT}"
+            echo "Backup pipeline executed successfully for ${BACKUP_CLIENT}"
         }
         failure {
-            echo "Backup automation failed for ${BACKUP_CLIENT}"
+            echo "Backup pipeline failed for ${BACKUP_CLIENT}"
         }
     }
 }
